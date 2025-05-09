@@ -1,0 +1,35 @@
+services:
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    depends_on:
+      - express-app
+    # Use command to create the Nginx config inline
+    command: |
+      /bin/sh -c "echo 'server {
+        listen 80;
+        location / {
+          proxy_pass http://express-app:5000;
+          proxy_http_version 1.1;
+          proxy_set_header Upgrade \$$http_upgrade;
+          proxy_set_header Connection \"upgrade\";
+          proxy_set_header Host \$$host;
+          proxy_cache_bypass \$$http_upgrade;
+        }
+      }' > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+    networks:
+      - app-network
+
+  express-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    expose:
+      - "5000"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
